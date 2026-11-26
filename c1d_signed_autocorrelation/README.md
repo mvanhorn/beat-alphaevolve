@@ -1,5 +1,7 @@
 # Improved Upper Bound for the Signed Third Autocorrelation Constant C_1d
 
+Permanent Zenodo DOI (preprint PDF, LaTeX source, exact certificate, and independent verifiers): https://doi.org/10.5281/zenodo.24573271
+
 Exact rational step-function certificate establishing
 
     C_1d <= 1949516888592680059852669907037867980800 / 1343285009105095348743847474054775337361
