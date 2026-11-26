@@ -1,0 +1,21 @@
+{
+  "title": "An Improved Upper Bound for the Signed Third Autocorrelation Constant C_1d (N = 819,200 Exact Certificate)",
+  "upload_type": "publication",
+  "publication_type": "preprint",
+  "description": "<p>Exact rational step-function certificate establishing C_1d &lt;= 1949516888592680059852669907037867980800 / 1343285009105095348743847474054775337361 = 1.4513054752925889347... &lt;= 1.451305475292589 for the signed third autocorrelation constant (constant 1d in teorth/optimizationproblems; Problem 6.4 of arXiv:2511.02864). Includes the N = 819,200 integer step-function certificate (c1d_upper_n819200.json.gz), two independent zero-dependency Python 3 standard-library exact verifiers (Kronecker big-integer substitution and 3-prime 60-bit NTT with Garner CRT), off-knot exact overlap integration and adversarial rejection controls, CUDA fp64 optimizer, SHA-256 checksums, and LaTeX/PDF manuscript.</p>",
+  "creators": [
+    {
+      "name": "Van Horn, Matt"
+    }
+  ],
+  "keywords": [
+    "autocorrelation inequality",
+    "signed third autocorrelation constant",
+    "optimization constants",
+    "exact rational certificate",
+    "harmonic analysis",
+    "additive combinatorics"
+  ],
+  "license": "MIT",
+  "access_right": "open"
+}

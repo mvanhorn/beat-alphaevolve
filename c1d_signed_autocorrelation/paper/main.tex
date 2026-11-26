@@ -1,0 +1,205 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{xurl}
+\usepackage[hidelinks]{hyperref}
+\usepackage{microtype}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+
+\title{An Improved Upper Bound for the Signed Third Autocorrelation Constant}
+\author{Matt Van Horn\thanks{GitHub: \texttt{mvanhorn}. Prepared with AI assistance (Google Antigravity / Gemini); see Section~\ref{sec:disclosure}.}}
+\date{November 26, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Let $C_{1d}$ denote the signed third autocorrelation constant, defined as the largest constant such that
+\[
+  \max_{t \in \mathbb{R}} \left|\int_{\mathbb{R}} f(t-x) f(x)\,dx\right| \ge C_{1d} \left(\int_{-1/4}^{1/4} f(x)\,dx\right)^2
+\]
+for all real-valued (not necessarily non-negative) integrable functions $f \colon \mathbb{R} \to \mathbb{R}$ supported on $[-1/4, 1/4]$. We construct an explicit signed step function with $N = 819{,}200$ equal cells and integer heights proving
+\begin{align*}
+  C_{1d} &\le \frac{1949516888592680059852669907037867980800}{1343285009105095348743847474054775337361} \\
+         &= 1.4513054752925889347\ldots \le 1.451305475292589.
+\end{align*}
+This improves the previous best upper bound $1.451306191849896925\ldots$ of Canli ($N = 102{,}400$) by $7.166 \times 10^{-7}$ and provides the first certified upper bound below $1.451306$. The exact rational bound is certified with zero floating-point arithmetic by two independent Python standard-library verifiers sharing no code, together with off-knot exact integration and adversarial rejection controls.
+\end{abstract}
+
+\section{Introduction and Exact Discretization}
+
+The third autocorrelation inequality (Problem 6.4 in \cite{GGSWT2025}, tracked as constant $C_{1d}$ in \cite{Tao2026}) asks for the sharpest constant $C_{1d}$ in
+\begin{equation}\label{eq:c1d}
+  \max_{t \in \mathbb{R}} |(f * f)(t)| \ge C_{1d} \left(\int_{-1/4}^{1/4} f(x)\,dx\right)^2,
+\end{equation}
+where $f \in L^1(\mathbb{R})$ is real-valued, allowed to take negative values, and supported on $[-1/4, 1/4]$. Matolcsi and Vinuesa \cite{MV2010} established $C_{1d} \le 1.4993$, and AlphaEvolve \cite{GGSWT2025} lowered this to $1.4688$. Subsequent crowdsourced step-function constructions recorded in \cite{Tao2026} progressively reduced the upper bound to $1.4540711001$ ($N = 51{,}200$, \cite{REV2026}), $1.4513064007$ ($N = 102{,}400$, \cite{WEILL2026}), and $1.4513061918499$ ($N = 102{,}400$, \cite{Can2026b}).
+
+Any explicit step function on a uniform grid yields an exact rational upper bound via the following elementary lemma.
+
+\begin{lemma}\label{lem:knot}
+Let $N \ge 1$, set $h = \frac{1}{2N}$, and let $v_0, \dots, v_{N-1} \in \mathbb{Z}$ with $S = \sum_{i=0}^{N-1} v_i \ne 0$. Define the step function
+\[
+  f(x) = \sum_{i=0}^{N-1} v_i\,\mathbf{1}_{[-1/4 + ih,\, -1/4 + (i+1)h)}(x).
+\]
+Then $f * f$ is continuous, supported on $[-1/2, 1/2]$, and piecewise linear with knots at $t_m = -1/2 + (m+1)h$ for $m = 0, \dots, 2N-2$ (vanishing at $t = \pm 1/2$), where
+\[
+  (f * f)(t_m) = h\, c_m, \qquad c_m = \sum_{\substack{0 \le i, j \le N-1 \\ i + j = m}} v_i v_j.
+\]
+Consequently,
+\begin{equation}\label{eq:exact}
+  C_{1d} \le \frac{\max_{t \in \mathbb{R}} |(f * f)(t)|}{\left(\int_{-1/4}^{1/4} f(x)\,dx\right)^2} = \frac{2N \max_{0 \le m \le 2N-2} |c_m|}{S^2}.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+The autoconvolution of each pair of cell indicators $\mathbf{1}_{[a,a+h)} * \mathbf{1}_{[b,b+h)}$ is a continuous symmetric tent function supported on $[a+b, a+b+2h]$ with peak value $h$ at $a+b+h$ and linear slopes on each half-interval of length $h$. Summing over all $0 \le i,j \le N-1$ shows that $f * f$ is continuous on $\mathbb{R}$, vanishes outside $(-1/2, 1/2)$, and is affine on every subinterval $[-1/2 + kh, -1/2 + (k+1)h]$ for $0 \le k \le 2N-1$, taking the value $h c_m$ at $t_m = -1/2 + (m+1)h$. Since $y \mapsto |y|$ is convex, the maximum of $|(f*f)(t)|$ on each affine subinterval is attained at one of its endpoints; because $(f*f)(\pm 1/2) = 0$, the global maximum is $\max_{0 \le m \le 2N-2} h |c_m|$. Dividing by $(\int f)^2 = (h S)^2 = h^2 S^2$ and substituting $h = 1/(2N)$ gives \eqref{eq:exact}.
+\end{proof}
+
+\section{Main Result}
+
+\begin{theorem}\label{thm:main}
+The signed third autocorrelation constant satisfies
+\[
+  C_{1d} \le \frac{1949516888592680059852669907037867980800}{1343285009105095348743847474054775337361} = 1.451305475292588934708300581686\ldots
+\]
+In particular, $C_{1d} \le 1.451305475292589$.
+\end{theorem}
+
+The witness is a signed integer vector $v = (v_0, \dots, v_{N-1}) \in \mathbb{Z}^N$ with $N = 819{,}200$ equal cells ($h = 1/1{,}638{,}400$), stored in \texttt{c1d\_upper\_n819200.json.gz} (SHA-256 checksum listed in Table~\ref{tab:sha}). Its exact integer invariants are:
+\begin{align*}
+  \max_{0 \le i < N} |v_i| &= 72057594037927928 \approx 2^{56}, \\
+  S = \sum_{i=0}^{N-1} v_i &= 293206822196766257848, \\
+  \max_{0 \le m \le 2N-2} |c_m| &= c_{244112} = 76153003460651564837994918243666718.
+\end{align*}
+The maximum is attained uniquely at knot $m = 244{,}112$, and $735{,}626$ of the $1{,}638{,}399$ knots lie within $10^{-10}$ of the maximum. Table~\ref{tab:history} places this bound in the progression of known upper bounds.
+
+\begin{table}[h]
+\centering
+\caption{Selected progression of upper bounds on $C_{1d}$.}
+\label{tab:history}
+\small
+\begin{tabular}{@{}lrll@{}}
+\toprule
+Reference & Cells $N$ & Upper bound & Notes \\
+\midrule
+Matolcsi--Vinuesa (2010) \cite{MV2010} & -- & $1.4993$ & Prior literature benchmark \\
+AlphaEvolve (2025) \cite{GGSWT2025} & -- & $1.4688$ & Problem 6.4 signed variant \\
+Monteiro et al.\ (2026) \cite{REV2026} & $51{,}200$ & $1.4540711000681049$ & Independent start \\
+Weill (2026) \cite{WEILL2026} & $102{,}400$ & $1.4513064006879361$ & Binary64 certificate \\
+Canli (2026) \cite{Can2026b} & $102{,}400$ & $1.4513061918499$ & Prior best ($-2.09 \times 10^{-7}$) \\
+\textbf{This work (2026)} & $\mathbf{819{,}200}$ & $\mathbf{1.451305475292589}$ & \textbf{First below $1.451306$ ($-7.17 \times 10^{-7}$)} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Optimization Method}
+
+We initialized from the published integer cell heights of \cite{Can2026b} ($N = 102{,}400$; data only, with no external optimizer or checker code read or run). To overcome the ill-conditioning of large-scale minimax autoconvolution near a flat optimum, we implemented a pure-CUDA \texttt{float64} L-BFGS optimizer ($m = 50$ history pairs, Armijo backtracking) targeting the two-sided LogSumExp surrogate
+\[
+  \Phi_\beta(v) = \frac{1}{\beta} \log \sum_{m=0}^{2N-2} \left(e^{\beta \tilde{c}_m} + e^{-\beta \tilde{c}_m}\right), \qquad \tilde{c}_m = \frac{2N}{S^2} c_m,
+\]
+in preconditioned coordinates $v = v_{\text{base}} + \mathcal{F}^{-1}(P \cdot \mathcal{F}(z))$, where $P(k) = (|\mathcal{F}(v_{\text{base}})(k)|^2 + \alpha^2)^{-p/2}$ is a smoothed inverse-spectrum Fourier preconditioner refreshed at every continuation stage. Each resolution used a heat-and-quench continuation schedule ($\beta$ from $2 \times 10^5$ up to $10^{12}$), followed by unpreconditioned spatial L-BFGS polishing at high $\beta$ to level isolated peak knots. Between resolutions, every cell was split into two equal cells and re-optimized on a single NVIDIA A100-SXM4-40GB GPU ($\approx 7.3$ Colab compute units total). Table~\ref{tab:ladder} reports the monotonic convergence across resolutions.
+
+\begin{table}[h]
+\centering
+\caption{Resolution ladder on a single NVIDIA A100-SXM4-40GB GPU.}
+\label{tab:ladder}
+\begin{tabular}{@{}rrrr@{}}
+\toprule
+Resolution $N$ & Upper bound on $C_{1d}$ & Gain vs.\ \cite{Can2026b} & Flat knots (within $10^{-10}$) \\
+\midrule
+$102{,}400$ (seed \cite{Can2026b}) & $1.451306191849897$ & $0$ & -- \\
+$102{,}400$ (ours) & $1.451306186952053$ & $-4.90 \times 10^{-9}$ & $97{,}153$ \\
+$204{,}800$ (ours) & $1.451305922344204$ & $-2.695 \times 10^{-7}$ & $192{,}582$ \\
+$409{,}600$ (ours) & $1.451305695176898$ & $-4.967 \times 10^{-7}$ & $378{,}416$ \\
+$819{,}200$ (ours, certified) & $1.451305475292589$ & $-7.166 \times 10^{-7}$ & $735{,}626$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+After GPU optimization at $N = 819{,}200$, the \texttt{float64} vector was scaled so $\max_i |v_i| \approx 2^{56}$ and rounded to exact integers before certification.
+
+\section{Independent Exact Verification and Artifact Checksums}
+
+All verification uses only the Python 3 standard library in isolated mode (\texttt{python3 -I}), with zero floating-point arithmetic in the bound calculation. Two independent verifiers sharing no code compute every exact integer coefficient $c_m$ ($0 \le m \le 1{,}638{,}398$) and output the identical reduced fraction of Theorem~\ref{thm:main}:
+
+\begin{enumerate}
+  \item \texttt{verify\_c1d\_kronecker.py}: shifts $v_i$ to nonnegative integers $u_i = v_i + B$, packs $P = \sum u_i 2^{iW}$ with carry-free slot width $W$ via divide-and-conquer, squares $P^2$ in arbitrary-precision integer arithmetic, unpacks and unshifts via prefix sums, checks the polynomial identity $P_v(x)^2 \equiv P_c(x) \pmod{2^{61}-1}$ at $x \in \{3, 17, 131071\}$, and independently sums $c_{244112}$ directly in $O(N)$ integer operations.
+  \item \texttt{verify\_c1d\_ntt.py}: deterministically generates and verifies three 60-bit NTT-friendly primes $p_r = k_r 2^{22} + 1$ with primitive roots (product exceeding $2N (\max |v_i|)^2$), computes exact cyclic autoconvolutions modulo each prime via iterative radix-2 NTT, reconstructs all exact signed integers $c_m$ via Garner's mixed-radix Chinese Remainder Theorem, and independently sums $c_{244112}$ directly.
+  \item \texttt{verify\_c1d\_controls.py}: verifies Lemma~\ref{lem:knot} directly from the interval-overlap integral definition in exact \texttt{Fraction} arithmetic at 12 knot and off-knot shifts on the $N = 819{,}200$ certificate, and confirms that both verifiers reject tighter claims, single-cell $+1$ perturbations, zero-sum vectors, and non-integer inputs.
+\end{enumerate}
+
+As a calibration control, both independent verifiers were executed unchanged on the prior record \cite{Can2026b} (\texttt{c1d\_upper\_n102400\_20261121.json}, SHA-256 prefix \texttt{3c668a4f5158499b}) and exactly reproduced its published fraction
+\[
+  \frac{5136552493465657446805004533831259136}{3539261750767002528079406787843004249} = 1.451306191849896925\ldots
+\]
+at $m = 28{,}802$.
+
+All artifacts are archived at pinned GitHub commit \texttt{8b444c7} at
+\begin{center}
+\small\url{https://github.com/mvanhorn/beat-alphaevolve/tree/8b444c755d925af58b7eb2a0d140bb00fc1c2798/c1d_signed_autocorrelation}
+\end{center}
+with the SHA-256 checksums in Table~\ref{tab:sha}.
+
+\begin{table}[h]
+\centering
+\caption{Artifact SHA-256 checksums at pinned commit \texttt{8b444c7}.}
+\label{tab:sha}
+\footnotesize
+\begin{tabular}{@{}ll@{}}
+\toprule
+File & SHA-256 \\
+\midrule
+\texttt{c1d\_upper\_n819200.json.gz} & \texttt{d6cad1be8a0d898be77a51ea0e27267770ab8f34f7db8f88702349dbaf4dd7a4} \\
+\texttt{verify\_c1d\_kronecker.py} & \texttt{320e5642a845920771ea0e97fdd987305a045005d6db6102f96a08bbaa143240} \\
+\texttt{verify\_c1d\_ntt.py} & \texttt{8c799fafebb3132dca9d5441efa3f1d6f685ae31e1e30940e4ddeeef4c004f0e} \\
+\texttt{verify\_c1d\_controls.py} & \texttt{d20f5841445877fc791c4e667282ffd540f05b165d91d7c09e13e2049d9a44e3} \\
+\texttt{gpu\_c1d\_deep.py} & \texttt{13221426d8a0a9032dcad31aea60536f40d84247173a4547119a12256ba5749d} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Disclosure of AI Assistance}\label{sec:disclosure}
+
+This work was directed by Matt Van Horn (\texttt{mvanhorn}), who takes responsibility for the submission. The GPU optimizer, exact standard-library verifiers, sanity/adversarial controls, and manuscript text were prepared with AI assistance (Google Antigravity / Gemini). Only the published numerical vector of \cite{Can2026b} was used as a warm start; no other contributor's optimizer or checker code was read or executed.
+
+\begin{thebibliography}{9}
+
+\bibitem{MV2010}
+M.~Matolcsi and C.~Vinuesa,
+\emph{Improved bounds on the supremum of autoconvolutions},
+J.\ Math.\ Anal.\ Appl.\ \textbf{372} (2010), no.~2, 439--447.
+
+\bibitem{GGSWT2025}
+B.~Georgiev, J.~G\'omez-Serrano, T.~Tao, and A.~Z.~Wagner,
+\emph{Mathematical exploration and discovery at scale},
+arXiv:2511.02864 (2025).
+
+\bibitem{Tao2026}
+T.~Tao et al.,
+\emph{Optimization Constants in Mathematics},
+GitHub repository,\\
+\url{https://github.com/teorth/optimizationproblems} (2026), constant \texttt{1d}.
+
+\bibitem{REV2026}
+M.~Monteiro, A.~Anache, M.-F.~Delort, and T.~Verny,
+\emph{A $51200$-cell step-function upper bound for the signed third autocorrelation constant},
+recorded in \cite{Tao2026}, constant \texttt{1d} (2026).
+
+\bibitem{WEILL2026}
+C.~Weill,
+\emph{Step-function certificate for the signed third autocorrelation inequality ($102400$ cells)},
+recorded in \cite{Tao2026}, constant \texttt{1d} (2026).
+
+\bibitem{Can2026b}
+A.~Canli,
+\emph{Step-function certificate for the signed third autocorrelation inequality ($102400$ cells)},
+\url{https://github.com/arhancanli/quantavane-replays/tree/4f637d40bc8d42748db3f00070587aec82d38ffd/improvements/c1d} (2026).
+
+\end{thebibliography}
+
+\end{document}
