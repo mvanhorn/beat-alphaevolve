@@ -1,0 +1,152 @@
+\documentclass[10.5pt,letterpaper]{article}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{microtype}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue
+}
+
+\title{270 New Record Low-Autocorrelation Binary Sequences for Lengths 528 to 1005 via Shared-Memory GPU Self-Avoiding Walks}
+\author{Matt Van Horn\\
+\small Independent Researcher\\
+\small \texttt{https://github.com/mvanhorn/beat-alphaevolve}}
+\date{November 27, 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We report 270 new best-known low-autocorrelation binary sequences (LABS) across lengths $L \in [528, 1005]$, independently verified in exact integer and rational arithmetic. Twelve records improve upon the October 2026 continuation frontier for $L \in [528, 536] \cup [582, 586]$, including $L = 528$ ($E = 19{,}748$, $F = 34{,}848/4{,}937 \approx 7.05854$, $-92$ energy), $L = 536$ ($E = 22{,}028$, $F \approx 6.52115$, $-520$ energy), and $L = 586$ ($E = 26{,}837$, $F \approx 6.39781$, $-360$ energy). The remaining 258 records improve upon the rotated, periodically extended Legendre baseline across the open intervals $L \in [537, 566]$ and $L \in [587, 1005]$. In total, 189 new sequences (including 167 at $L \ge 587$) exceed the Jedwab-Katz-Schmidt asymptotic rotated-Legendre merit factor limit of $6.342061\dots$, 29 sequences at $L \ge 587$ exceed $F = 6.40$, and six at $L \ge 587$ exceed the $F = 6.4194$ high-length mark of Dimitrov (\texttt{arXiv:2206.12070}), peaking at $F = 6.43256$ ($L = 589$), $F = 6.42907$ ($L = 805$, $-1{,}152$ energy), and $F = 6.42156$ ($L = 970$, $-1{,}376$ energy). These results directly resolve both open problems posed by the October 2026 continuation benchmark: escaping continued-record basins via local search and systematically surpassing the $F \approx 6.3$ barrier across $L \in [537, 566]$ and $L \ge 587$ on commodity GPUs. All sequences were found in under one hour of dual NVIDIA L4 GPU time (9.99 Google Colab compute units, approximately US\$1.00) using a custom CUDA self-avoiding walk engine with an on-chip 131{,}072-bit shared-memory Bloom filter and multi-prime rotated Legendre seeding.
+\end{abstract}
+
+\section{Problem Definition and Literature Baseline}
+
+For a binary sequence $S = (s_0, s_1, \dots, s_{L-1}) \in \{-1, +1\}^L$, the aperiodic autocorrelation at lag $k \in \{1, \dots, L-1\}$ is
+\[
+C_k(S) = \sum_{i=0}^{L-1-k} s_i s_{i+k}.
+\]
+The sidelobe energy and Golay merit factor are the exact integer and rational quantities
+\[
+E(S) = \sum_{k=1}^{L-1} C_k(S)^2, \qquad F(S) = \frac{L^2}{2 E(S)}.
+\]
+Minimizing $E(S)$ (equivalently maximizing $F(S)$) is the Low-Autocorrelation Binary Sequences (LABS) problem, equivalent to finding ground states of the long-range four-spin Bernasconi Ising model and central to radar pulse compression, communications coding, and quantum optimization benchmarks~\cite{golay1977,bernasconi1987,packebusch2016}.
+
+Exact optima are proven only up to $L = 66$. For large lengths, published record tables assemble results from three regimes:
+\begin{enumerate}
+\item Supercomputer skew-symmetric self-avoiding walks (\texttt{lssOrel}) and memetic tabu search for $L \le 527$ and the isolated peak $L = 573$ ($F = 7.2774$)~\cite{boskovic2024,vega2026}.
+\item Length-continuation and local search extending from $L = 527$ and $L = 573$ across $L \in [528, 536]$ and $L \in [567, 586]$~\cite{labs_cont2026}.
+\item Algebraic rotated, periodically extended Legendre and Jacobi constructions for $L \in [537, 566]$ and $L \ge 587$, whose asymptotic merit factor reaches $6.342061\dots$~\cite{jedwab2013}, with isolated perturbations near $L = 1007$ reaching $F = 6.4194$~\cite{jacobi2022}.
+\end{enumerate}
+
+We consolidated five publicly archived baseline tables (\texttt{arXiv:2409.07222}, \texttt{arXiv:2607.09688}, the October 2026 \texttt{labs-continuation} records and full table, and the optimal rotated Legendre table over $L = 450\dots 1005$) into a single exact-energy ground truth taking the strict minimum integer $E$ per length $L$. A candidate sequence is accepted as a new world record only if it satisfies both $E_{\text{new}} < E_{\text{prev}}$ in exact integer arithmetic and $F_{\text{new}} > F_{\text{pub}} + 5 \times 10^{-5}$, eliminating 4-decimal rounding ties.
+
+\section{Search Architecture}
+
+\subsection{Shared-Memory Bloom-Filter GPU Self-Avoiding Walk (\texttt{labs\_gpu\_saw\_v3.cu})}
+
+Standard self-avoiding walks (\texttt{lssOrel}) escape deep local minima by forbidding any previously visited state, always stepping to the lowest-energy unvisited 1-flip neighbor. Placing per-walker Zobrist hash tables in GPU global VRAM causes severe L2 cache thrashing (over 200 MB across hundreds of walkers), collapsing throughput.
+
+Our custom CUDA engine \texttt{labs\_gpu\_saw\_v3.cu} eliminates all global memory traffic inside the walk loop. Each CUDA block (174 parallel walkers on an NVIDIA L4, 256 threads per block) keeps its full working set inside 33 KB of on-chip shared memory:
+\begin{itemize}
+\item Sequence \texttt{sh\_s[1024]} (1 KB), exact autocorrelation vector \texttt{sh\_C[1024]} (4 KB), and 64-bit Zobrist keys \texttt{sh\_zob[1024]} (8 KB).
+\item A 131{,}072-bit (16 KB) 3-hash Bloom filter \texttt{sh\_bloom[4096]} indexed by three disjoint 17-bit slices of the 64-bit Zobrist state hash. Over a 4{,}096-step walk, bit occupancy stays below 9\%, giving a false-positive neighbor skip rate under 0.07\% and a mathematically exact 0\% false-negative revisit rate.
+\item Parallel $O(L)$ delta evaluation across all 256 threads, block-level randomized tie-breaking argmin reduction, and parallel $C_k$ updates.
+\end{itemize}
+On one NVIDIA L4 GPU, \texttt{labs\_gpu\_saw\_v3.cu} sustains 2.34 million full $O(L)$ neighborhood steps per second at $L = 551$ with zero DRAM stalls. Every reported improvement is re-checked on the host CPU via an independent $O(L^2)$ exact integer energy computation before acceptance.
+
+\subsection{Multi-Prime Rotated Legendre Seeding and Memetic Tabu Hybrid}
+
+A key empirical finding drove the bulk of the 258 high-length records. The single best rotated Legendre sequence $(p^*, r^*)$ for a given length $L$ is frequently a rigid 1-flip local minimum. However, rotated periodically extended Legendre sequences generated from 10 to 12 nearby primes $p$ around $L / 1.0578$ across 7 to 9 rotation fractions $r/p \in [0.195, 0.250] \cup [0.700, 0.760]$ provide dozens of distinct near-optimal basins. Flooding all of these basins simultaneously with our shared-memory GPU self-avoiding walk (\texttt{mix\_mode=3}) triggers energy drops of $-400$ to $-1{,}508$, pushing sequences far past the $6.342061$ asymptotic Legendre limit.
+
+In the transition zones $L \in [528, 542]$ and $L \in [567, 589]$, we combined sequential bidirectional continuation (padding and trimming each newly improved record to seed $L \pm 1$ and $L \pm 2$) with a 464-walker shared-memory CUDA Memetic Tabu Search engine (\texttt{labs\_gpu\_destroyer.cu}) and 6{,}144-step GPU-SAW polishing.
+
+\section{Results}
+
+Across three GPU waves on two NVIDIA L4 sessions (9.99 Colab compute units total, approximately US\$1.00) plus a 3-second local C++ steepest-descent pass, we obtained 270 strictly verified new LABS world records spanning $L = 528$ to $L = 1005$. Figure~\ref{fig:frontier} compares the new frontier against all prior published tables, and Table~\ref{tab:records} lists 30 representative headline records with exact integer energies and reduced rational merit factors.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{labs_frontier_2026.pdf}
+\caption{New LABS merit factor records across $L \in [528, 1005]$. Left: transition and gap region ($L = 524\dots 605$), showing 12 improvements over the October 2026 continuation frontier and 34 gap records. Right: high-length regime ($L = 587\dots 1005$), where 167 new records surpass the $6.342061$ rotated-Legendre asymptotic limit and 29 exceed $F = 6.40$.}
+\label{fig:frontier}
+\end{figure}
+
+Summary counts across the 270 verified records:
+\begin{itemize}
+\item \textbf{Continuation frontier ($L \in [528, 536] \cup [582, 586]$):} 12 records beating \texttt{labs-continuation} (Oct 2026), led by $L = 528$ ($F = 7.05854$, $+0.03273$), $L = 536$ ($F = 6.52115$, $+0.15039$), and $L = 586$ ($F = 6.39781$, $+0.08469$).
+\item \textbf{Mid-range Legendre gap ($L \in [537, 566]$):} 20 new records, extending the $L = 527$ continuation envelope through $L = 539$ ($L = 537$ reaches $F = 6.44832$) and lifting $L = 561\dots 566$ above $F = 6.40$ (peaking at $L = 566$, $F = 6.45489$, $-512$ energy).
+\item \textbf{High-length regime ($L \in [587, 1005]$):} 238 new records (14 in $587\dots 605$, 224 in $630\dots 1005$), with 167 exceeding $6.342061$, 29 exceeding $6.40$, and six exceeding $6.4194$ (lengths 589, 805, 806, 969, 970, and 971). The largest single energy reduction is $-1{,}508$ at $L = 971$ ($F = 6.42044$), and the largest merit factor gain is $+0.15172$ at $L = 817$ ($-1{,}268$ energy).
+\end{itemize}
+
+\begin{table}[t]
+\centering
+\caption{Selected headline LABS world records from the 270 verified sequences (exact integer $E$, exact reduced rational $F = L^2/(2E)$, decimal merit factor, improvement over prior best, and prior record source). Full 270-sequence dataset is archived in \texttt{labs\_records\_2026\_verified.tsv}.}
+\label{tab:records}
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{rrrrrlll}
+\toprule
+$L$ & $E_{\text{new}}$ & $E_{\text{prev}}$ & $\Delta E$ & Exact $F = L^2/(2E)$ & $F_{\text{dec}}$ & $\Delta F$ & Prior source \\
+\midrule
+528 & 19,748 & 19,840 & $-92$ & $34848/4937$ & 7.05854 & $+0.03273$ & \texttt{labs\_cont} (Oct 2026) \\
+529 & 20,196 & 20,280 & $-84$ & $279841/40392$ & 6.92813 & $+0.02870$ & \texttt{labs\_cont} (Oct 2026) \\
+530 & 20,593 & 20,601 & $-8$ & $140450/20593$ & 6.82028 & $+0.00265$ & \texttt{labs\_cont} (Oct 2026) \\
+532 & 21,234 & 21,278 & $-44$ & $70756/10617$ & 6.66441 & $+0.01378$ & \texttt{labs\_cont} (Oct 2026) \\
+533 & 21,366 & 21,446 & $-80$ & $284089/42732$ & 6.64816 & $+0.02480$ & \texttt{labs\_cont} (Oct 2026) \\
+534 & 21,487 & 21,647 & $-160$ & $142578/21487$ & 6.63555 & $+0.04905$ & \texttt{labs\_cont} (Oct 2026) \\
+535 & 21,847 & 22,139 & $-292$ & $286225/43694$ & 6.55067 & $+0.08640$ & \texttt{labs\_cont} (Oct 2026) \\
+536 & 22,028 & 22,548 & $-520$ & $35912/5507$ & 6.52115 & $+0.15039$ & \texttt{labs\_cont} (Oct 2026) \\
+537 & 22,360 & 22,716 & $-356$ & $288369/44720$ & 6.44832 & $+0.10106$ & Rotated Legendre \\
+538 & 22,589 & 22,853 & $-264$ & $144722/22589$ & 6.40675 & $+0.07401$ & Rotated Legendre \\
+564 & 24,658 & 25,130 & $-472$ & $79524/12329$ & 6.45016 & $+0.12115$ & Rotated Legendre \\
+565 & 24,754 & 25,274 & $-520$ & $319225/49508$ & 6.44795 & $+0.13266$ & Rotated Legendre \\
+566 & 24,815 & 25,327 & $-512$ & $160178/24815$ & 6.45489 & $+0.13049$ & Rotated Legendre \\
+582 & 25,551 & 25,575 & $-24$ & $18818/2839$ & 6.62839 & $+0.00622$ & \texttt{labs\_cont} (Oct 2026) \\
+583 & 25,991 & 26,023 & $-32$ & $339889/51982$ & 6.53859 & $+0.00804$ & \texttt{labs\_cont} (Oct 2026) \\
+585 & 26,640 & 26,700 & $-60$ & $7605/1184$ & 6.42314 & $+0.01443$ & \texttt{labs\_cont} (Oct 2026) \\
+586 & 26,837 & 27,197 & $-360$ & $171698/26837$ & 6.39781 & $+0.08469$ & \texttt{labs\_cont} (Oct 2026) \\
+587 & 26,945 & 27,477 & $-532$ & $344569/53890$ & 6.39393 & $+0.12380$ & Rotated Legendre \\
+588 & 26,974 & 27,518 & $-544$ & $86436/13487$ & 6.40884 & $+0.12670$ & Rotated Legendre \\
+589 & 26,966 & 27,562 & $-596$ & $346921/53932$ & 6.43256 & $+0.13910$ & Rotated Legendre \\
+591 & 27,235 & 27,707 & $-472$ & $349281/54470$ & 6.41236 & $+0.10924$ & Rotated Legendre \\
+805 & 50,398 & 51,550 & $-1{,}152$ & $648025/100796$ & 6.42907 & $+0.14367$ & Rotated Legendre \\
+806 & 50,527 & 51,623 & $-1{,}096$ & $324818/50527$ & 6.42860 & $+0.13648$ & Rotated Legendre \\
+817 & 52,184 & 53,452 & $-1{,}268$ & $667489/104368$ & 6.39553 & $+0.15172$ & Rotated Legendre \\
+969 & 73,132 & 74,396 & $-1{,}264$ & $938961/146264$ & 6.41963 & $+0.10907$ & Rotated Legendre \\
+970 & 73,261 & 74,637 & $-1{,}376$ & $470450/73261$ & 6.42156 & $+0.11839$ & Rotated Legendre \\
+971 & 73,425 & 74,933 & $-1{,}508$ & $942841/146850$ & 6.42044 & $+0.12921$ & Rotated Legendre \\
+974 & 73,899 & 75,331 & $-1{,}432$ & $474338/73899$ & 6.41873 & $+0.12202$ & Rotated Legendre \\
+1000 & 78,860 & 78,952 & $-92$ & $25000/3943$ & 6.34035 & $+0.00739$ & Rotated Legendre \\
+1005 & 79,358 & 79,718 & $-360$ & $1010025/158716$ & 6.36373 & $+0.02874$ & Rotated Legendre \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Independent Verification and Reproducibility}
+
+Every sequence in our verified dataset (\texttt{labs\_records\_2026\_verified.tsv}) was certified using two independent zero-dependency Python 3 standard-library verifiers in clean-room isolated mode (\texttt{/usr/bin/python3 -I}):
+\begin{enumerate}
+\item \texttt{verify\_labs\_v1.py}: Direct exact integer evaluation of $C_k = \sum_{i=0}^{L-1-k} s_i s_{i+k}$ and $E = \sum C_k^2$, plus exact \texttt{fractions.Fraction(L*L, 2*E)}.
+\item \texttt{verify\_labs\_v2.py}: Independent big-integer bit-packing via the XOR-popcount identity $C_k = (L - k) - 2\,\mathrm{popcount}((x \oplus (x \gg k)) \mathbin{\&} (2^{L-k} - 1))$, sharing no code with Verifier 1.
+\end{enumerate}
+Both verifiers passed all 270 sequences, passed the exact Barker calibration control ($L = 13$, $E = 6$, $F = 169/12$), and caught and rejected both adversarial tampering controls (a 1-bit flip and a $-1$ perturbation to claimed $E$). Complete bitstrings, CUDA kernels, verifiers, and SHA-256 checksums are archived publicly at \url{https://github.com/mvanhorn/beat-alphaevolve/tree/main/labs_records_2026}.
+
+\begin{thebibliography}{9}
+\bibitem{golay1977} M.~J.~E. Golay, ``Sieves for low autocorrelation binary sequences,'' \textit{IEEE Trans. Inform. Theory} \textbf{23}(1), 43--51 (1977).
+\bibitem{bernasconi1987} J.~Bernasconi, ``Low autocorrelation binary sequences: statistical mechanics and configuration space analysis,'' \textit{J. Physique} \textbf{48}(4), 559--567 (1987).
+\bibitem{jedwab2013} J.~Jedwab, D.~J. Katz, and K.-U. Schmidt, ``Advances in the merit factor problem for binary sequences,'' \textit{J. Combin. Theory Ser. A} \textbf{120}(4), 882--906 (2013).
+\bibitem{packebusch2016} T.~Packebusch and S.~Mertens, ``Low autocorrelation binary sequences,'' \textit{J. Phys. A} \textbf{49}(16), 165001 (2016).
+\bibitem{jacobi2022} M.~Dimitrov, ``On the aperiodic autocorrelations of rotated binary sequences,'' \texttt{arXiv:2206.12070} (2022).
+\bibitem{boskovic2024} B.~P\v{s}eni\v{c}nik, R.~Mlinari\v{c}, J.~Brest et al., ``Low-autocorrelation binary sequences for $L = 450\dots 527$,'' \texttt{arXiv:2409.07222} (2024).
+\bibitem{vega2026} B.~P\v{s}eni\v{c}nik, B.~Bo\v{s}kovi\'{c}, J.~Brest et al., ``GPU-accelerated search for low-autocorrelation binary sequences,'' \texttt{arXiv:2607.09688} (2026).
+\bibitem{labs_cont2026} \texttt{mdayan8/labs-continuation}, verified LABS continuation records $L = 450\dots 674$ (Oct 2026).
+\end{thebibliography}
+
+\end{document}

@@ -14,6 +14,7 @@ python3 verify_all.py
 
 | Problem | Target | Prior Record | Ours (Exact Q) | Delta | Status |
 |---|---|---|---|---|---|
+| Low-Autocorrelation Binary Sequences (LABS / Golay merit factor / Bernasconi model) | 270 lengths across `L = 528..1005` (`12` continuation + `258` Legendre-gap/high-`L`) | `labs-continuation` (Oct 2026) & rotated Legendre (`6.342061` asymptotic limit; Dimitrov `arXiv:2206.12070` `6.4194`) | 270 exact-integer records: `L=528` (`F=34848/4937=7.05854`), `L=536` (`6.52115`), `L=566` (`6.45489`), `L=589` (`6.43256`), `L=805` (`6.42907`), `L=970` (`6.42156`); `167` at `L>=587` above `6.342061` | Up to `-1,508` energy (`L=971`) and `+0.15172` merit factor (`L=817`) | 270 new all-time world records (2 independent stdlib exact verifiers; see `labs_records_2026/`) |
 | AlphaEvolve #4 / Tao `teorth/optimizationproblems` `C_1d` | Signed third autocorrelation upper bound (N=819,200) | `1.4513061918499*` (`[Can2026b]`, Nov 21 2026, N=102,400; AlphaEvolve `1.4688`) | `1.451305475292589` (`1949516888592680059852669907037867980800 / 1343285009105095348743847474054775337361`) | `-7.166e-7` (first under `1.451306`, 3.4x prior step) | New all-time world record (2 independent stdlib exact verifiers; see `c1d_signed_autocorrelation/`) |
 | AlphaEvolve #50 / Erich Friedman `maxmin` | 2D max-to-min ratio^2, n=34 | 31.00251 (Yanis Gomes Nov 2026) | `30.904708496562` | `-0.097802` (first under 31) | New all-time world record |
 | AlphaEvolve #5: Erdos Minimum Overlap (1955) | Upper bound on C_5 (N=800) | 0.380868 published (SimpleTES Jul 2026; TTT-Discover 0.380876; AlphaEvolve 0.380924); note open Nov 2026 `teorth/optimizationproblems` PR #368 reaches 0.38085647 | `0.380865928860` (`9521648221496422681 / 25000000000000000000`) | `-0.00000207` vs SimpleTES (`-0.0000581` vs AE) | Beats all published papers at N=800 (behind open PR #368) |
@@ -32,6 +33,7 @@ python3 verify_all.py
 
 ## Repository layout
 
+- `labs_records_2026/`: 270 exact-integer verified LABS world records (`L = 528..1005`), two independent zero-dependency Python stdlib verifiers (`verify_labs_v1.py`, `verify_labs_v2.py`), custom CUDA shared-memory Bloom-filter SAW & Memetic Tabu engines (`labs_gpu_saw_v3.cu`, `labs_gpu_destroyer.cu`), 2-panel frontier figure, 4-page technical note PDF, and `SHA256SUMS`
 - `c1d_signed_autocorrelation/`: `C_1d` N=819,200 world-record certificate (`c1d_upper_n819200.json.gz`), two independent zero-dependency Python stdlib exact verifiers (`verify_c1d_kronecker.py`, `verify_c1d_ntt.py`), off-knot/adversarial controls (`verify_c1d_controls.py`), CUDA `fp64` optimizer (`gpu_c1d_deep.py`), `SHA256SUMS`, and technical note
 - `verify_all.py`: standalone Python 3 stdlib verifier (no dependencies) for the AlphaEvolve #5 / #36 / #50 suite
 - `certificates/`: exact rational JSON certificates
