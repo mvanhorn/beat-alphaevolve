@@ -1,5 +1,7 @@
 # 270 New Record Low-Autocorrelation Binary Sequences (L = 528 to 1005)
 
+Permanent Zenodo archive and DOI: https://doi.org/10.5281/zenodo.24581609 (`10.5281/zenodo.24581609`)
+
 Exact-integer and exact-rational verified world records for the Low-Autocorrelation Binary Sequences (LABS / Golay merit factor / Bernasconi Ising model) problem across lengths `L = 528..1005`.
 
 ## Summary
